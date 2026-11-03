@@ -6,10 +6,12 @@ const path = require('path');
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use('/uploads', express.static('uploads'));
 
-const uploadsDir = path.join(__dirname, '../uploads');
+// Vercel vs Local ke liye alag folder
+const uploadsDir = process.env.VERCEL ? '/tmp/uploads' : path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+
+app.use('/uploads', express.static(uploadsDir));
 
 app.get('/', (req, res) => {
   let files = [];
@@ -19,27 +21,12 @@ app.get('/', (req, res) => {
       <b>${f}</b><br/><br/>
       <a href="/uploads/${f}" target="_blank"><button>GET</button></a>
       <a href="/delete/${f}"><button style="background:red;color:white;">DELETE</button></a>
-      <form onsubmit="event.preventDefault(); fetch('/api/files/${f}', {method:'PUT', headers:{'Content-Type':'application/json','Accept':'text/html'}, body: JSON.stringify({newName: this.newName.value})}).then(()=>location.reload())" style="display:inline;">
-        <input type="text" name="newName" placeholder="Naya naam.jpg" required style="width:120px"/>
-        <button type="submit" style="background:orange;color:white;">UPDATE</button>
+      <form onsubmit="event.preventDefault(); fetch('/api/files/${f}', {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({newName: this.newName.value})}).then(()=>location.reload())" style="display:inline;">
+        <input name="newName" placeholder="Naya naam" required style="width:100px"/>
+        <button style="background:orange;color:white;">UPDATE</button>
       </form>
-    </div>
-  `).join('') || '<p>Koi file nahi</p>';
-
-  res.send(`
-    <body style="font-family:sans-serif; padding:20px;">
-      <h1>🛒 Dukaan CRUD Pura</h1>
-      <div style="background:#f0f0f0; padding:20px; border-radius:10px;">
-        <h3>CREATE (PUSH)</h3>
-        <form action="/api/files" method="post" enctype="multipart/form-data">
-          <input type="file" name="file" required />
-          <button type="submit" style="background:green;color:white;">Upload</button>
-        </form>
-      </div>
-      <h3>READ / UPDATE / DELETE</h3>
-      ${cards}
-    </body>
-  `);
+    </div>`).join('') || '<p>Koi file nahi</p>';
+  res.send(`<body style="font-family:sans-serif;padding:20px;"><h1>🛒 Dukaan CRUD</h1><form action="/api/files" method="post" enctype="multipart/form-data"><input type="file" name="file" required/><button style="background:green;color:white;">Upload</button></form><div style="display:flex;flex-wrap:wrap;">${cards}</div></body>`);
 });
 
 app.get('/delete/:filename', (req, res) => {
